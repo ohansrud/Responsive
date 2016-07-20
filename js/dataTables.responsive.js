@@ -127,6 +127,8 @@ var Responsive = function ( settings, opts ) {
 	this.c = $.extend( true, {}, Responsive.defaults, DataTable.defaults.responsive, opts );
 	settings.responsive = this;
 	this._constructor();
+
+	this._resize();
 };
 
 $.extend( Responsive.prototype, {
@@ -737,12 +739,12 @@ $.extend( Responsive.prototype, {
 		var oldVis = this.s.current.slice();
 
 		// Determine what breakpoint we are currently at
-		for ( i=breakpoints.length-1 ; i>=0 ; i-- ) {
-			if ( width <= breakpoints[i].width ) {
-				breakpoint = breakpoints[i].name;
-				break;
-			}
-		}
+		//for ( i=breakpoints.length-1 ; i>=0 ; i-- ) {
+		//	if ( width <= breakpoints[i].width ) {
+		//		breakpoint = breakpoints[i].name;
+		//		break;
+		//	}
+		//}
 		
 		// Show the columns for that break point
 		var columnsVis = this._columnsVisiblity( breakpoint );
@@ -770,6 +772,52 @@ $.extend( Responsive.prototype, {
 			}
 		} );
 
+        //Edit OCH: Check size of table
+        var table = $(dt).context[0].nTable.clientWidth;
+        var id = $(dt).context[0].nTable.id;
+        var wrapper = document.getElementById(id + '_wrapper');
+        if (wrapper != undefined) {
+            var wrapperwidth = wrapper.clientWidth;
+
+            //Check if table is too big for wrapper
+            var counter = 0;
+            //While table is bigger than wrapper
+            while (table > wrapperwidth) {
+                console.log('Too big');
+                console.log(table + '  ' + wrapperwidth);
+                console.log(counter);
+                //Find last visible column
+                for (var i = columnsVis.length; i > 0; i--) {
+                    if (columnsVis[i] == true) {
+                        columnsVis[i] = false;
+                        //Hide last column
+                        this._setColumnVis(i, false);
+                        changed = true;
+                        break;
+                    }
+                    //Show details row if this is hidden
+                    if (columnsVis[0] == false) {
+                        columnsVis[0] = true;
+                        this._setColumnVis(0, true);
+                        collapsedClass = true;
+                        $(dt.table().node()).toggleClass('collapsed', collapsedClass);
+                    }
+
+                }
+
+                //Recalculate new width of table
+                table = $(dt).context[0].nTable.clientWidth;
+                wrapper = document.getElementById(id + '_wrapper');
+                wrapperwidth = wrapper.clientWidth;
+                counter++;
+                if (counter > 50) {
+                    //Break if safety counter reached 20 iterations
+                    break;
+                }
+            }
+        }
+
+        //End Edit
 		if ( changed ) {
 			this._redrawChildren();
 
@@ -898,7 +946,19 @@ $.extend( Responsive.prototype, {
 
 		$( dt.column( col ).header() ).css( 'display', display );
 		$( dt.column( col ).footer() ).css( 'display', display );
-		dt.column( col ).nodes().to$().css( 'display', display );
+		dt.column(col).nodes().to$().css('display', display);
+
+	    //Edit OCH: Set second header to show/hide
+		var header = dt.header();
+		var filters = [];
+	    //Determines if datatables contains extra header that also needs to be responsive
+		if (header[0].children.length > 1) {
+		    filters = header[0].children[0].children;
+		}
+		if (filters.length > 0) {
+		    $(filters[col]).css('display', display);
+		}
+	    //End Edit
 	},
 
 
